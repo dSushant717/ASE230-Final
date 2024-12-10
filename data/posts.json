@@ -1,0 +1,43 @@
+[
+    {
+        "title": "Sailing the Grand Line: One Piece Adventure",
+        "content": "",
+        "author": "Eiichiro Oda",
+        "date": "2024-11-15",
+        "image": "assets\/img\/one-piece-adventure.jpg"
+    },
+    {
+        "title": "Wall Maria Defense: Attack on Titan Coaster",
+        "content": "",
+        "author": "Hajime Isayama",
+        "date": "2024-11-18",
+        "image": "assets\/img\/attack-on-titan-coaster.jpg"
+    },
+    {
+        "title": "The Hidden Leaf Village: Naruto Training Ground",
+        "content": "",
+        "author": "Masashi Kishimoto",
+        "date": "2024-11-20",
+        "image": "assets\/img\/naruto-village.jpg"
+    },
+    {
+        "title": "Infinity Train Ride: Demon Slayer Saga",
+        "content": "",
+        "author": "Koyoharu Gotouge",
+        "date": "2024-11-22",
+        "image": "assets\/img\/demon-slayer-train.jpg"
+    },
+    {
+        "title": "UA Hero Training Camp: My Hero Academia",
+        "content": "",
+        "author": "Kohei Horikoshi",
+        "date": "2024-11-25",
+        "image": "assets\/img\/my-hero-academia.jpg"
+    },
+    {
+        "title": "Test Title",
+        "content": "Updating the Content",
+        "author": "Sushant",
+        "date": "2024-12-08"
+    }
+]
