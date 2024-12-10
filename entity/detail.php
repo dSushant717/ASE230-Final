@@ -6,7 +6,10 @@ session_start();
 $postId = $_GET['id'] ?? null;
 
 if (!$postId) {
-    die("Error: Post ID is missing. Please navigate back to the posts page.");
+    // Log the error and redirect to a user-friendly error page or the posts page
+    error_log("Post ID is missing.");
+    header("Location: posts.php?error=missing_post_id");
+    exit;
 }
 
 // Fetch post and author details from the database
@@ -20,7 +23,10 @@ $stmt->execute([':post_id' => $postId]);
 $post = $stmt->fetch();
 
 if (!$post) {
-    die("Error: The post does not exist. Please navigate back to the posts page.");
+    // Log the error and redirect to a user-friendly error page or the posts page
+    error_log("Post with ID $postId does not exist.");
+    header("Location: posts.php?error=post_not_found");
+    exit;
 }
 
 // Handle comment deletion

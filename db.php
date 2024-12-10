@@ -11,6 +11,13 @@ try {
     $pdo->setAttribute(PDO::ATTR_ERRMODE, PDO::ERRMODE_EXCEPTION);
     $pdo->setAttribute(PDO::ATTR_DEFAULT_FETCH_MODE, PDO::FETCH_ASSOC);
 } catch (PDOException $e) {
-    die("Database connection failed: " . $e->getMessage());
+    // Log the error message for debugging
+    error_log("Database connection failed: " . $e->getMessage());
+    
+    // Display a user-friendly message
+    echo "<p>System error: Unable to connect to the database. Please try again later.</p>";
+    
+    // Exit to stop further execution
+    exit;
 }
 ?>
