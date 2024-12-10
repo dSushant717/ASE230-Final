@@ -39,5 +39,11 @@
         "content": "Updating the Content",
         "author": "Sushant",
         "date": "2024-12-08"
+    },
+    {
+        "title": "Nova's Title",
+        "content": "Nova's Content",
+        "author": "Nova",
+        "date": "2024-12-10"
     }
 ]

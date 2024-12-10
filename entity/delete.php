@@ -1,27 +1,39 @@
 <?php
-include '../functions.php';
-if (session_status() === PHP_SESSION_NONE) {
-    session_start();
-}
-requireAuthentication(); // Ensure the user is logged in
+require_once '../db.php';
+session_start();
 
-// Fetch the post ID and data
-$id = $_GET['id'] ?? null;
-$posts = readData('../data/posts.json');
-$post = $id !== null && isset($posts[$id]) ? $posts[$id] : null;
-
-// Check if the post exists and the logged-in user is the author
-if ($post === null || $_SESSION['user'] !== $post['author']) {
-    echo "<script>
-        alert('You are not authorized to delete this post.');
-        window.history.back();
-    </script>";
+if (!isset($_SESSION['user_id']) || !isset($_SESSION['role'])) {
+    header('Location: ../auth/signin.php');
     exit;
 }
 
+$postId = $_GET['id'] ?? null;
+
+if (!$postId) {
+    die('Error: Post ID is missing.');
+}
+
+// Fetch the post
+$stmt = $pdo->prepare("SELECT * FROM post WHERE post_id = :post_id");
+$stmt->execute([':post_id' => $postId]);
+$post = $stmt->fetch();
+
+if (!$post) {
+    die('Error: Post does not exist.');
+}
+
+// Check permissions
+$isAdmin = $_SESSION['role'] === 'admin';
+$isOwner = $_SESSION['user_id'] === $post['author_id'];
+
+if (!$isAdmin && !$isOwner) {
+    die('Error: You are not authorized to delete this post.');
+}
+
 // Delete the post
-unset($posts[$id]);
-saveData('../data/posts.json', array_values($posts));
+$stmt = $pdo->prepare("DELETE FROM post WHERE post_id = :post_id");
+$stmt->execute([':post_id' => $postId]);
+
 header('Location: posts.php');
 exit;
 ?>

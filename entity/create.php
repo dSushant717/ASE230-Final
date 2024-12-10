@@ -1,26 +1,43 @@
 <?php
-include '../functions.php';
+require_once '../db.php';
+require '../functions.php';
 if (session_status() === PHP_SESSION_NONE) {
     session_start();
 }
 requireAuthentication(); // Ensure the user is logged in
 
+$error = null;
+$success = null;
+
 if ($_SERVER['REQUEST_METHOD'] === 'POST') {
-    $title = $_POST['title'];
-    $content = $_POST['content'];
-    $author = $_SESSION['user']; // Use the logged-in user's name as the author
-    $date = date('Y-m-d');
+    $title = htmlspecialchars($_POST['title']);
+    $content = htmlspecialchars($_POST['content']);
+    $authorId = $_SESSION['user_id']; 
 
-    // Fetch existing posts
-    $posts = readData('../data/posts.json');
+    // Server-side validation
+    if (empty($title) || empty($content)) {
+        $error = "Title and content are required.";
+    } elseif (strlen($title) > 255) {
+        $error = "Title cannot exceed 255 characters.";
+    } else {
+        try {
+            // Insert new post into the database
+            $stmt = $pdo->prepare("INSERT INTO post (title, content, author_id) VALUES (:title, :content, :author_id)");
+            $stmt->execute([
+                ':title' => $title,
+                ':content' => $content,
+                ':author_id' => $authorId,
+            ]);
 
-    // Add new post
-    $posts[] = ['title' => $title, 'content' => $content, 'author' => $author, 'date' => $date];
-    saveData('../data/posts.json', $posts);
-
-    // Redirect to posts page
-    header('Location: ../entity/posts.php');
-    exit;
+            // Set success message
+            $success = "Your post has been created successfully!";
+            // Redirect after a short delay
+            header('Refresh: 2; URL=../entity/posts.php');
+        } catch (PDOException $e) {
+            error_log("Error creating post: " . $e->getMessage(), 0);
+            $error = "There was an issue creating your post. Please try again later.";
+        }
+    }
 }
 ?>
 
@@ -31,10 +48,19 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
     <link href="../assets/css/styles.css" rel="stylesheet">
 </head>
 <body>
-    <?php include '../includes/header.php'; ?> <!-- Include the header -->
+    <?php include '../includes/header.php'; ?>
 
-    <div class="container">
+    <div class="container content">
         <h2>Create a New Post</h2>
+
+        <!-- Display Error or Success Messages -->
+        <?php if ($error): ?>
+            <div class="alert alert-danger"><?= $error; ?></div>
+        <?php elseif ($success): ?>
+            <div class="alert alert-success"><?= $success; ?></div>
+        <?php endif; ?>
+
+        <!-- Post Creation Form -->
         <form method="POST">
             <div class="form-group">
                 <label for="title">Title</label>
@@ -48,6 +74,6 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
         </form>
     </div>
 
-    <?php include '../includes/footer.php'; ?> <!-- Include the footer -->
+    <?php include '../includes/footer.php'; ?>
 </body>
 </html>

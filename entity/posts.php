@@ -1,8 +1,10 @@
 <?php
-require_once '../db.php'; // Include database connection
-session_start();
+require_once '../db.php';
+if (session_status() === PHP_SESSION_NONE) {
+    session_start();
+}
 
-// Fetch all posts along with their author's username
+// Fetch posts from the database
 $stmt = $pdo->prepare("
     SELECT p.post_id, p.title, p.content, DATE(p.created_at) AS created_date, u.username AS author, u.user_id AS author_id
     FROM post p
@@ -10,7 +12,7 @@ $stmt = $pdo->prepare("
     ORDER BY p.created_at DESC
 ");
 $stmt->execute();
-$posts = $stmt->fetchAll();
+$posts = $stmt->fetchAll(PDO::FETCH_ASSOC);
 
 // Check if the current user is an admin
 $isAdmin = isset($_SESSION['role']) && $_SESSION['role'] === 'admin';
@@ -49,7 +51,7 @@ $currentUserId = $_SESSION['user_id'] ?? null;
     <div class="container px-4 px-lg-5">
         <div class="row gx-4 gx-lg-5 justify-content-center">
             <div class="col-md-10 col-lg-8 col-xl-7">
-                <!-- Button to Create New Post (Visible to Logged-In Users Only) -->
+                <!-- Button to Create New Post -->
                 <?php if (isset($_SESSION['user'])): ?>
                     <a href="create.php" class="btn btn-primary mb-3">Create New Post</a>
                 <?php endif; ?>
@@ -57,18 +59,19 @@ $currentUserId = $_SESSION['user_id'] ?? null;
                 <!-- Display Posts -->
                 <?php foreach ($posts as $post): ?>
                     <div class="post-preview">
-                        <a href="detail.php?id=<?= $post['post_id']; ?>">
-                            <h2 class="post-title"><?= htmlspecialchars($post['title']); ?></h2>
-                            <h3 class="post-subtitle"><?= htmlspecialchars(substr($post['content'], 0, 100)) . '...'; ?></h3>
+                        <a href="detail.php?id=<?= htmlspecialchars($post['post_id']); ?>">
+                            <h2 class="post-title"><?= htmlspecialchars_decode($post['title']); ?></h2>
+                            <h3 class="post-subtitle"><?= htmlspecialchars_decode(substr($post['content'], 0, 100)) . '...'; ?></h3>
                         </a>
                         <p class="post-meta">
                             Posted by <?= htmlspecialchars($post['author']); ?> on <?= htmlspecialchars($post['created_date']); ?>
                             <?php if ($isAdmin || $currentUserId == $post['author_id']): ?>
-                                | <a href="edit.php?id=<?= $post['post_id']; ?>">Edit</a>
-                                | <a href="delete.php?id=<?= $post['post_id']; ?>" onclick="return confirm('Are you sure you want to delete this post?');">Delete</a>
+                                | <a href="edit.php?id=<?= htmlspecialchars($post['post_id']); ?>">Edit</a>
+                                | <a href="delete.php?id=<?= htmlspecialchars($post['post_id']); ?>" onclick="return confirm('Are you sure you want to delete this post?');">Delete</a>
                             <?php endif; ?>
                         </p>
                     </div>
+
                     <hr>
                 <?php endforeach; ?>
             </div>

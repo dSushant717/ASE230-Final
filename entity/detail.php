@@ -23,9 +23,36 @@ if (!$post) {
     die("Error: The post does not exist. Please navigate back to the posts page.");
 }
 
+// Handle comment deletion
+if (isset($_GET['delete_comment']) && isset($_SESSION['user_id'])) {
+    $commentId = $_GET['delete_comment'];
+
+    // Fetch the comment to check permissions
+    $stmt = $pdo->prepare("SELECT * FROM comment WHERE comment_id = :comment_id");
+    $stmt->execute([':comment_id' => $commentId]);
+    $comment = $stmt->fetch();
+
+    if ($comment) {
+        $isAdmin = $_SESSION['role'] === 'admin';
+        $isOwner = $_SESSION['user_id'] === $comment['author_id'];
+
+        if ($isAdmin || $isOwner) {
+            // Delete the comment
+            $stmt = $pdo->prepare("DELETE FROM comment WHERE comment_id = :comment_id");
+            $stmt->execute([':comment_id' => $commentId]);
+            header("Location: detail.php?id=$postId");
+            exit;
+        } else {
+            echo "<script>alert('You are not authorized to delete this comment.');</script>";
+        }
+    } else {
+        echo "<script>alert('Comment does not exist.');</script>";
+    }
+}
+
 // Fetch comments for the post
 $stmt = $pdo->prepare("
-    SELECT c.content, c.created_at, u.username AS author_name 
+    SELECT c.comment_id, c.content, c.created_at, u.username AS author_name, c.author_id
     FROM comment c 
     JOIN user u ON c.author_id = u.user_id 
     WHERE c.post_id = :post_id 
@@ -35,21 +62,17 @@ $stmt->execute([':post_id' => $postId]);
 $comments = $stmt->fetchAll();
 
 // Handle new comment submission
-if ($_SERVER['REQUEST_METHOD'] === 'POST') {
-    if (isset($_SESSION['user'])) {
-        $content = htmlspecialchars($_POST['content']);
-        $authorId = $_SESSION['user_id'];
-        $stmt = $pdo->prepare("INSERT INTO comment (content, post_id, author_id) VALUES (:content, :post_id, :author_id)");
-        $stmt->execute([
-            ':content' => $content,
-            ':post_id' => $postId,
-            ':author_id' => $authorId,
-        ]);
-        header("Location: detail.php?id=$postId");
-        exit;
-    } else {
-        echo "<script>alert('Please log in to add a comment.');</script>";
-    }
+if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_SESSION['user'])) {
+    $content = htmlspecialchars($_POST['content'], ENT_QUOTES | ENT_HTML5);
+    $authorId = $_SESSION['user_id'];
+    $stmt = $pdo->prepare("INSERT INTO comment (content, post_id, author_id) VALUES (:content, :post_id, :author_id)");
+    $stmt->execute([
+        ':content' => $content,
+        ':post_id' => $postId,
+        ':author_id' => $authorId,
+    ]);
+    header("Location: detail.php?id=$postId");
+    exit;
 }
 ?>
 
@@ -58,36 +81,18 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title><?= htmlspecialchars($post['title']); ?></title>
+    <title><?= htmlspecialchars_decode($post['title'], ENT_QUOTES | ENT_HTML5); ?></title>
     <link href="../assets/css/styles.css" rel="stylesheet">
 </head>
 <body>
     <?php include '../includes/header.php'; ?>
 
-    <!-- Page Header with Post Image -->
-    <header class="masthead" style="background-image: url('../<?= htmlspecialchars($post['image'] ?? 'assets/img/default-bg.jpg'); ?>');">
-        <div class="container position-relative px-4 px-lg-5">
-            <div class="row gx-4 gx-lg-5 justify-content-center">
-                <div class="col-md-10 col-lg-8 col-xl-7">
-                    <div class="post-heading">
-                        <h1><?= htmlspecialchars($post['title']); ?></h1>
-                        <h2 class="subheading">Posted by <?= htmlspecialchars($post['author_name']); ?></h2>
-                    </div>
-                </div>
-            </div>
-        </div>
-    </header>
-
-    <!-- Post Content -->
-    <article>
-        <div class="container">
-            <div class="row justify-content-center">
-                <div class="col-md-10 col-lg-8 col-xl-7">
-                    <p><?= nl2br(htmlspecialchars($post['content'])); ?></p>
-                </div>
-            </div>
-        </div>
-    </article>
+    <!-- Post Details -->
+    <div class="container content mt-5">
+        <h2><?= htmlspecialchars_decode($post['title'], ENT_QUOTES | ENT_HTML5); ?></h2>
+        <p>Posted by <?= htmlspecialchars($post['author_name']); ?> on <?= htmlspecialchars(date("F j, Y", strtotime($post['created_at']))); ?></p>
+        <p><?= nl2br(htmlspecialchars_decode($post['content'], ENT_QUOTES | ENT_HTML5)); ?></p>
+    </div>
 
     <!-- Comments Section -->
     <div class="container mt-5">
@@ -100,6 +105,14 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
                     <p><strong><?= htmlspecialchars($comment['author_name']); ?></strong> said:</p>
                     <p><?= nl2br(htmlspecialchars($comment['content'])); ?></p>
                     <p><small><?= htmlspecialchars(date("F j, Y, g:i a", strtotime($comment['created_at']))); ?></small></p>
+                    <?php if (isset($_SESSION['user_id']) && ($_SESSION['role'] === 'admin' || $_SESSION['user_id'] === $comment['author_id'])): ?>
+                        <a href="detail.php?id=<?= $postId; ?>&delete_comment=<?= $comment['comment_id']; ?>" 
+                        onclick="return confirm('Are you sure you want to delete this comment?');" 
+                        class="text-danger" 
+                        title="Delete Comment">
+                            <i class="fas fa-trash-alt"></i> <!-- Trash icon -->
+                        </a>
+                    <?php endif; ?>
                 </div>
                 <hr>
             <?php endforeach; ?>
@@ -117,6 +130,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
             <p><a href="../auth/signin.php">Log in</a> to add a comment.</p>
         <?php endif; ?>
     </div>
+
 
     <?php include '../includes/footer.php'; ?>
 </body>

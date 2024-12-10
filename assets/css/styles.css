@@ -401,6 +401,11 @@ textarea {
   resize: vertical;
 }
 
+.content {
+    margin-top: 20px;
+}
+
+
 .comment-box {
     background: #f9f9f9;
     border: 1px solid #ddd;
